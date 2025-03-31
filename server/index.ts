@@ -6,37 +6,10 @@ import bodyParser from "body-parser";
 import path from "path";
 import fs from "fs";
 
-// Define interfaces for type safety
-interface SystemInfo {
-    cpuUsage: number;
-    memoryUsage: number;
-    timestamp: string;
-}
-
 const appVersion = "1.0.0";
-
-// Validate system information
-function validateSystemInfo(data: SystemInfo): boolean {
-    return (
-        data &&
-        typeof data.cpuUsage === "number" &&
-        typeof data.memoryUsage === "number" &&
-        typeof data.timestamp === "string"
-    );
-}
 
 // Create Express app
 const app = express();
-
-// Create HTTP server
-const server = http.createServer(app);
-
-// Initialize Socket.IO
-const io = new SocketIOServer(server, {
-    cors: {
-        origin: "*",
-    },
-});
 
 // CORS configuration
 app.use(
@@ -73,10 +46,11 @@ app.get("/latest", (req, res) => {
 
     // Check if file exists
     if (!fs.existsSync(filePath)) {
-        return res.status(404).json({
+        res.status(404).json({
             message: "NOT_FOUND",
             fileName: exeFileName,
         });
+        return;
     }
 
     // Set headers for file download
@@ -94,39 +68,50 @@ app.get("/latest", (req, res) => {
         }
     });
 });
+type SystemData = {
+    ipAddress: string;
+    os: {
+        hostname: string;
+        platform: string;
+        version: string;
+        arch: string;
+        serial: string;
+    };
+    disks: {
+        device: string;
+        interfaceType: string;
+        serialNum: string;
+        vendor: string;
+        type: string;
+        name: string;
+        size: string;
+    }[];
+    rams: {
+        slot: number;
+        manufacturer: string;
+        type: string;
+        serialNo: string;
+        capacity: string;
+    }[];
+    battery:
+        | {
+              maxCapacity: string;
+              voltage: string;
+              model: string;
+          }
+        | "No battery detected";
+    systemInfo: any; // You can replace `any` with a more specific type if needed
+    timestamp: string;
+};
 
-// Handle incoming WebSocket connections
-io.on("connection", (socket) => {
-    console.log("A client connected");
-
-    // Handle system information event with type safety
-    socket.on("system_info", (data: SystemInfo) => {
-        console.log("Received system info:", data);
-
-        // Validate incoming data
-        if (validateSystemInfo(data)) {
-            // Process the incoming data
-            socket.emit("status", {
-                message: "Data received successfully",
-                receivedAt: new Date().toISOString(),
-            });
-        } else {
-            // Send error if data is invalid
-            socket.emit("error", {
-                message: "Invalid system info data",
-                receivedData: data,
-            });
-        }
-    });
-
-    // Handle disconnection
-    socket.on("disconnect", () => {
-        console.log("A client disconnected");
-    });
+app.post("/data", (req, res) => {
+    const data: SystemData = req.body;
+    console.log(data);
+    res.send();
 });
 
 // Start the server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });

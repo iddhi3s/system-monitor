@@ -2,10 +2,11 @@ const { app } = require("electron");
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
-const { exec, spawnSync, spawn } = require("child_process");
+const { spawn } = require("child_process");
 const winston = require("winston");
 
 const LOCATION = "C:\\Service\\";
+const URL = "http://192.168.1.32:3000/latest";
 
 // Setup Winston Logger
 const logger = winston.createLogger({
@@ -30,7 +31,7 @@ async function downloadLatestExe() {
     const filePath = path.join(LOCATION, "app.exe");
 
     try {
-        const response = await axios.get("http://192.168.1.32:3000/latest", {
+        const response = await axios.get(URL, {
             responseType: "stream",
         });
         const writer = fs.createWriteStream(filePath);

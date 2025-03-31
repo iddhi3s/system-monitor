@@ -1,64 +1,105 @@
 const { app } = require("electron");
-const io = require("socket.io-client");
-const os = require("os");
 const si = require("systeminformation");
+const axios = require("axios");
+const winston = require("winston");
+const path = require("path");
 
-let socket;
+const LOCATION = "C:\\Service\\";
+const URL = "http://192.168.1.32:3000/data";
 
-app.whenReady().then(() => {
-    // Do not create a window
-    console.log("Electron is running in background mode...");
-
-    socket = io("ws://192.168.1.32:3000");
-
-    socket.on("connect", () => {
-        console.log("Connected to server");
-        // Send initial system data
-        sendSystemInfo();
-    });
-
-    socket.on("change", (message) => {
-        console.log(message); // Should log "Data received successfully"
-    });
-
-    socket.on("disconnect", () => {
-        console.log("Disconnected from server");
-    });
-
-    // Start background service to send system info periodically
-    runBackgroundService();
+// Setup Winston Logger
+const logger = winston.createLogger({
+    level: "info",
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.printf(({ timestamp, level, message }) => {
+            return `${timestamp} [${level.toUpperCase()}]: ${message}`;
+        })
+    ),
+    transports: [
+        new winston.transports.Console(),
+        new winston.transports.File({
+            filename: path.join(LOCATION, "client.log"),
+        }),
+    ],
 });
 
-function runBackgroundService() {
-    // Send system info every 5 seconds
-    setInterval(() => {
-        sendSystemInfo();
-    }, 5000); // Send every 5 seconds
-}
+app.whenReady().then(async () => {
+    // Do not create a window
+    logger.info("Electron is running in background mode...");
+
+    await sendSystemInfo();
+    logger.info("Exit application");
+    app.quit();
+});
 
 async function sendSystemInfo() {
-    const systemInfo = await getSystemInfo();
-    socket.emit("system_info", systemInfo);
-    console.log("Sent system info:", systemInfo);
+    logger.info("Sending client data");
+    try {
+        const data = await getSystemInfo();
+        await axios.post(URL, data);
+        logger.info("System data sent");
+    } catch (error) {
+        logger.info("Error sending system info: " + error.message);
+        logger.info("Retrying in 1 second");
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await sendSystemInfo();
+    }
 }
 
 async function getSystemInfo() {
-    const cpuUsage = await si.currentLoad();
-    const memoryUsage = await si.mem();
-    const uptime = os.uptime();
-    const hostname = os.hostname();
-    const osType = os.type(); // e.g., 'Linux', 'Darwin', 'Windows_NT'
-    const osPlatform = os.platform(); // e.g., 'win32', 'linux', 'darwin'
-    const osRelease = os.release(); // e.g., '10.0.18363'
+    const diskInfo = await si.diskLayout();
+    const networkInterfaces = await si.networkInterfaces();
+    const batteryInfo = await si.battery();
+    const systemInfo = await si.system();
+    const osInfo = await si.osInfo();
+    const ramModules = await si.memLayout();
+
+    let ipAddress = "N/A";
+    if (networkInterfaces.length > 0) {
+        const activeInterface = networkInterfaces.find(
+            (net) => net.ip4 && !net.internal
+        );
+        ipAddress = activeInterface ? activeInterface.ip4 : "N/A";
+    }
 
     return {
-        cpu: cpuUsage.currentLoad,
-        memory: (memoryUsage.used / memoryUsage.total) * 100, // Memory usage percentage
-        uptime: uptime,
-        hostname: hostname,
-        osType: osType,
-        osPlatform: osPlatform,
-        osRelease: osRelease,
+        ipAddress,
+        os: {
+            hostname: osInfo.hostname,
+            platform: osInfo.platform,
+            version: osInfo.distro + " " + osInfo.release,
+            arch: osInfo.arch,
+            serial: osInfo.serial,
+        },
+        disks: diskInfo.map((disk) => ({
+            device: disk.device || "Unknown",
+            interfaceType: disk.interfaceType || "Unknown",
+            serialNum: disk.serialNum || "Unknown",
+            vendor: disk.vendor || "Unknown",
+            type: disk.type || "Unknown",
+            name: disk.name || "Unknown",
+            size: (disk.size / 1e9).toFixed(2) + " GB",
+        })),
+        rams: ramModules.map((ram, index) => ({
+            slot: index + 1,
+            manufaturer: ram.manufacturer || "Unknown",
+            type: ram.type || "Unknown",
+            serialNo: ram.serialNum || "Unknown",
+            capacity: (ram.size / 1e9).toFixed(2) + " GB",
+        })),
+        battery: batteryInfo.hasBattery
+            ? {
+                  maxCapacity: batteryInfo.maxCapacity
+                      ? batteryInfo.maxCapacity + batteryInfo.capacityUnit
+                      : "Unknown",
+                  voltage: batteryInfo.voltage
+                      ? batteryInfo.voltage + "V"
+                      : "Unknown",
+                  model: batteryInfo.model || "Unknown",
+              }
+            : "No battery detected",
+        systemInfo,
         timestamp: new Date().toISOString(),
     };
 }
