@@ -1,29 +1,73 @@
 import express from "express";
-import http from "http";
-import { Server as SocketIOServer } from "socket.io";
 import cors from "cors";
 import bodyParser from "body-parser";
 import path from "path";
 import fs from "fs";
+import mongoose from "mongoose";
+import morgan from "morgan";
 
 const appVersion = "1.0.0";
+
+// Database Connection
+mongoose.connect("mongodb://localhost:27017/system_data");
+
+const db = mongoose.connection;
+
+db.on("error", (error) => {
+    console.log(error);
+    process.exit(1);
+});
+db.once("open", () => console.log("Connected to MongoDB"));
+
+// Define Mongoose Schema & Model
+const systemSchema = new mongoose.Schema({
+    ipAddress: String,
+    os: {
+        hostname: String,
+        platform: String,
+        version: String,
+        arch: String,
+        serial: String,
+    },
+    disks: [
+        {
+            device: String,
+            interfaceType: String,
+            serialNum: String,
+            vendor: String,
+            type: String,
+            name: String,
+            size: String,
+        },
+    ],
+    rams: [
+        {
+            slot: Number,
+            manufacturer: String,
+            type: String,
+            serialNo: String,
+            capacity: String,
+        },
+    ],
+    battery: {
+        maxCapacity: String,
+        voltage: String,
+        model: String,
+    },
+    systemInfo: Object,
+    timestamp: String,
+});
+const SystemInfo = mongoose.model("SystemInfo", systemSchema);
 
 // Create Express app
 const app = express();
 
 // CORS configuration
-app.use(
-    cors({
-        origin: "*",
-    })
-);
-
-// Body parser middleware
+app.use(cors({ origin: "*" }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
-// Serve static files from public directory
 app.use(express.static(path.join(process.cwd(), "public")));
+app.use(morgan("tiny"));
 
 // Health check route
 app.get("/", (req, res) => {
@@ -40,7 +84,7 @@ app.get("/app/:version", (req, res) => {
 
     res.send({ message: "NEW_UPDATE", new_version: appVersion });
 });
-app.get("/latest", (req, res) => {
+app.get("/latest", (_, res) => {
     const exeFileName = `3S_Server_Client ${appVersion}.exe`;
     const filePath = path.join(process.cwd(), "public", exeFileName);
 
@@ -104,10 +148,20 @@ type SystemData = {
     timestamp: string;
 };
 
-app.post("/data", (req, res) => {
-    const data: SystemData = req.body;
-    console.log(data);
-    res.send();
+app.post("/data", async (req, res) => {
+    try {
+        const data = req.body;
+        const systemData = new SystemInfo(data);
+        await systemData.save();
+        console.log("System info saved:", data);
+        res.send({ message: "Data saved successfully" });
+    } catch (error: any) {
+        console.error("Error saving data:", error);
+        res.status(500).send({
+            message: "Error saving data",
+            error: error.message,
+        });
+    }
 });
 
 // Start the server
