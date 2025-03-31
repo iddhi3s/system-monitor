@@ -1,0 +1,36 @@
+{
+    "name": "my-electron-app",
+    "version": "1.0.0",
+    "description": "3S_Server_Client",
+    "main": "index.js",
+    "scripts": {
+        "start": "react-scripts start",
+        "build": "react-scripts build",
+        "electron": "electron .",
+        "electron-build": "electron-builder"
+    },
+    "dependencies": {
+        "systeminformation": "^5.25.11",
+        "socket.io-client": "^4.8.1"
+    },
+    "devDependencies": {
+        "electron": "^22.0.0",
+        "electron-builder": "^25.1.8"
+    },
+    "build": {
+        "appId": "com.3slk.serverclient",
+        "productName": "3S_Server_Client",
+        "directories": {
+            "buildResources": "assets",
+            "output": "dist"
+        },
+        "files": [
+            "build/**/*",
+            "index.js"
+        ],
+        "win": {
+            "target": "portable",
+            "icon": "client.ico"
+        }
+    }
+}
