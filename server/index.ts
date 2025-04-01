@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs";
 import morgan from "morgan";
 import { DataTypes, Sequelize } from "sequelize";
+import moment from "moment";
 
 // Database connection
 // @ts-ignore
@@ -12,6 +13,7 @@ const sequelize = new Sequelize(process.env.WEB_CREDINTIALS_DB_URL);
 
 // Define the SystemInfo model
 const SystemInfo = sequelize.define("MachineDetail", {
+    serial: { type: DataTypes.STRING },
     ipAddress: { type: DataTypes.STRING },
     macAddress: { type: DataTypes.STRING },
     loggedInUser: { type: DataTypes.STRING },
@@ -93,6 +95,7 @@ app.get("/latest", (_, res) => {
     });
 });
 type SystemInfoType = {
+    serial: string;
     ipAddress: string;
     macAddress: string;
     loggedInUser: string;
@@ -187,6 +190,7 @@ app.post("/data", async (req, res) => {
     try {
         console.log(data);
         await SystemInfo.create({
+            serial: data.systemInfo.serial,
             ipAddress: data.ipAddress,
             macAddress: data.macAddress,
             loggedInUser: data.loggedInUser,
@@ -208,6 +212,147 @@ app.post("/data", async (req, res) => {
         console.log("Error saving data for:", data.ipAddress);
         console.error(error);
         res.status(500).send();
+    }
+});
+
+app.get("/machines", async (req, res) => {
+    try {
+        const [latestMachines] = await sequelize.query(`
+            SELECT * FROM MachineDetails m1
+            WHERE createdAt = (
+                SELECT MAX(createdAt) FROM MachineDetails m2
+                WHERE m1.macAddress = m2.macAddress
+            )
+        `);
+
+        const modifiedMachines = latestMachines.map((machine: any) => {
+            const timeAgo = moment(machine.timestamp).fromNow();
+            return {
+                ...machine,
+                os: JSON.parse(machine.os),
+                cpu: JSON.parse(machine.cpu),
+                disks: JSON.parse(machine.disks),
+                rams: JSON.parse(machine.rams),
+                gpu: JSON.parse(machine.gpu),
+                monitors: JSON.parse(machine.monitors),
+                battery: JSON.parse(machine.battery),
+                systemInfo: JSON.parse(machine.systemInfo),
+                lastSent: timeAgo,
+                timestamp: moment(machine.timestamp).format("YYYY/MM/DD HH:mm"),
+            };
+        });
+
+        res.send(modifiedMachines);
+    } catch (error) {
+        console.error("Error fetching machine details:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+app.get("/machines/total", async (req, res) => {
+    try {
+        const [result] = await sequelize.query(`
+            SELECT COUNT(DISTINCT serial) AS total FROM MachineDetails
+        `);
+
+        const totalMachines = result[0]?.total || 0; // Extract count safely
+
+        console.log("Total Machines:", totalMachines);
+        res.send({ total: totalMachines });
+    } catch (error) {
+        console.error("Error fetching total machines:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+app.get("/machines/inactive", async (req, res) => {
+    try {
+        const [result] = await sequelize.query(`
+            SELECT COUNT(*) AS inactiveCount 
+            FROM MachineDetails
+            WHERE timestamp < NOW() - INTERVAL 2 DAY
+        `);
+
+        res.json({ inactiveCount: result[0].inactiveCount });
+    } catch (error) {
+        console.error("Error fetching inactive machine count:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+app.get("/machines/ram-distribution", async (req, res) => {
+    try {
+        const [latestMachines] = await sequelize.query(`
+            WITH RankedMachines AS (
+                SELECT *,
+                    ROW_NUMBER() OVER (PARTITION BY serial ORDER BY createdAt DESC) AS rn
+                FROM MachineDetails
+            )
+            SELECT JSON_UNQUOTE(JSON_EXTRACT(rams, '$[0].capacity')) AS ram
+            FROM RankedMachines
+            WHERE rn = 1;
+        `);
+
+        const ramCounts = latestMachines.reduce(
+            (acc: Record<string, number>, machine: any) => {
+                const ramSize = machine.ram + "GB";
+                acc[ramSize] = (acc[ramSize] || 0) + 1;
+                return acc;
+            },
+            {}
+        );
+
+        const formattedData = Object.entries(ramCounts).map(([ram, count]) => ({
+            ram,
+            count,
+        }));
+
+        res.json(formattedData);
+    } catch (error) {
+        console.error("Error fetching RAM distribution:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+app.get("/machines/:serial", async (req, res) => {
+    const { serial } = req.params;
+
+    try {
+        // Query to get all records for a given serial
+        const machines = await sequelize.query(
+            `
+            SELECT * FROM MachineDetails m1
+            WHERE m1.serial = :serial
+            ORDER BY m1.createdAt DESC
+        `,
+            {
+                replacements: { serial },
+                type: sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        // Modify the data with necessary transformations
+        const modifiedMachines = machines.map((machine: any) => {
+            const timeAgo = moment(machine.timestamp).fromNow();
+            return {
+                ...machine,
+                os: JSON.parse(machine.os),
+                cpu: JSON.parse(machine.cpu),
+                disks: JSON.parse(machine.disks),
+                rams: JSON.parse(machine.rams),
+                gpu: JSON.parse(machine.gpu),
+                monitors: JSON.parse(machine.monitors),
+                battery: JSON.parse(machine.battery),
+                systemInfo: JSON.parse(machine.systemInfo),
+                lastSent: timeAgo, // Display time since last sent
+                timestamp: moment(machine.timestamp).format("YYYY/MM/DD HH:mm"), // Format timestamp
+            };
+        });
+
+        res.send(modifiedMachines);
+    } catch (error) {
+        console.error("Error fetching machine details:", error);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 

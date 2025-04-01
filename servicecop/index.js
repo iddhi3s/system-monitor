@@ -2,7 +2,7 @@ const { app } = require("electron");
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
-const { spawn } = require("child_process");
+const { spawn, exec } = require("child_process");
 const winston = require("winston");
 
 const LOCATION = "C:\\Service\\";
@@ -58,17 +58,20 @@ async function downloadLatestExe() {
 }
 
 function startNewProcess(exe_path) {
-    return new Promise(async (resolve, reject) => {
-        logger.info("Starting Software");
+    return new Promise((resolve, reject) => {
+        logger.info("Starting Software as Administrator");
 
-        const subprocess = spawn(exe_path, [], {
-            detached: true,
-            stdio: "ignore",
+        const command = `runas /user:Administrator "${exe_path}"`;
+
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                logger.error(`Error starting process: ${error.message}`);
+                reject(error);
+            } else {
+                logger.info("Process started successfully");
+                resolve("success");
+            }
         });
-
-        subprocess.unref(); // Ensures it is completely detached
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        resolve("success");
     });
 }
 
