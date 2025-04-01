@@ -54,26 +54,45 @@ async function getSystemInfo() {
     const systemInfo = await si.system();
     const osInfo = await si.osInfo();
     const ramModules = await si.memLayout();
+    const cpuInfo = await si.cpu();
+    const users = await si.users();
+    const graphicsInfo = await si.graphics();
 
+    // Get IP and MAC Address
     let ipAddress = "N/A";
+    let macAddress = "N/A";
     if (networkInterfaces.length > 0) {
         const activeInterface = networkInterfaces.find(
             (net) => net.ip4 && !net.internal
         );
-        ipAddress = activeInterface ? activeInterface.ip4 : "N/A";
+        if (activeInterface) {
+            ipAddress = activeInterface.ip4;
+            macAddress = activeInterface.mac || "N/A";
+        }
     }
 
-    return {
+    const data = {
         ipAddress,
+        macAddress,
+        loggedInUser: users.length > 0 ? users[0].user : "Unknown",
+        loggedDate: users.length > 0 ? users[0].date : "Unknown",
+        loggedTime: users.length > 0 ? users[0].time : "Unknown",
         os: {
-            hostname: osInfo.hostname,
-            platform: osInfo.platform,
+            hostname: osInfo.hostname || "Unknown",
+            platform: osInfo.platform || "Unknown",
             version: osInfo.distro + " " + osInfo.release,
-            arch: osInfo.arch,
-            serial: osInfo.serial,
+            arch: osInfo.arch || "Unknown",
+            serial: osInfo.serial || "Unknown",
+            release: osInfo.release || "Unknown",
         },
-        disks: diskInfo.map((disk) => ({
-            device: disk.device || "Unknown",
+        cpu: {
+            manufacturer: cpuInfo.manufacturer,
+            brand: cpuInfo.brand,
+            cores: cpuInfo.cores,
+            speed: cpuInfo.speed + "Ghz",
+        },
+        disks: diskInfo.map((disk, index) => ({
+            slot: index + 1,
             interfaceType: disk.interfaceType || "Unknown",
             serialNum: disk.serialNum || "Unknown",
             vendor: disk.vendor || "Unknown",
@@ -88,6 +107,16 @@ async function getSystemInfo() {
             serialNo: ram.serialNum || "Unknown",
             capacity: (ram.size / 1e9).toFixed(2) + " GB",
         })),
+        gpu: graphicsInfo.controllers.map((controller, index) => ({
+            slot: index + 1,
+            vendor: controller.vendor || "Unknown",
+            model: controller.model || "Unknown",
+            vram: controller.vram || "Unknown",
+        })),
+        monitors: graphicsInfo.displays.map((display, index) => ({
+            slot: index + 1,
+            connection: display.connection,
+        })),
         battery: batteryInfo.hasBattery
             ? {
                   maxCapacity: batteryInfo.maxCapacity
@@ -100,8 +129,10 @@ async function getSystemInfo() {
               }
             : "No battery detected",
         systemInfo,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(),
     };
+
+    return data;
 }
 
 app.on("window-all-closed", () => {

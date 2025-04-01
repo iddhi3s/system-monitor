@@ -3,61 +3,42 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import path from "path";
 import fs from "fs";
-import mongoose from "mongoose";
 import morgan from "morgan";
+import { DataTypes, Sequelize } from "sequelize";
+
+// Database connection
+// @ts-ignore
+const sequelize = new Sequelize(process.env.WEB_CREDINTIALS_DB_URL);
+
+// Define the SystemInfo model
+const SystemInfo = sequelize.define("MachineDetail", {
+    ipAddress: { type: DataTypes.STRING },
+    macAddress: { type: DataTypes.STRING },
+    loggedInUser: { type: DataTypes.STRING },
+    loggedDate: { type: DataTypes.STRING },
+    loggedTime: { type: DataTypes.STRING },
+    os: { type: DataTypes.TEXT },
+    cpu: { type: DataTypes.TEXT },
+    disks: { type: DataTypes.TEXT },
+    rams: { type: DataTypes.TEXT },
+    gpu: { type: DataTypes.TEXT },
+    monitors: { type: DataTypes.TEXT },
+    battery: { type: DataTypes.TEXT },
+    systemInfo: { type: DataTypes.TEXT },
+    timestamp: { type: DataTypes.STRING },
+});
+
+sequelize
+    .authenticate()
+    .then(() => {
+        sequelize.sync().then(() => console.log("Database synced"));
+    })
+    .catch((error) => {
+        console.log("Error connecting to the databse: " + error.message);
+        process.exit(1);
+    });
 
 const appVersion = "1.0.0";
-
-// Database Connection
-mongoose.connect("mongodb://localhost:27017/system_data");
-
-const db = mongoose.connection;
-
-db.on("error", (error) => {
-    console.log(error);
-    process.exit(1);
-});
-db.once("open", () => console.log("Connected to MongoDB"));
-
-// Define Mongoose Schema & Model
-const systemSchema = new mongoose.Schema({
-    ipAddress: String,
-    os: {
-        hostname: String,
-        platform: String,
-        version: String,
-        arch: String,
-        serial: String,
-    },
-    disks: [
-        {
-            device: String,
-            interfaceType: String,
-            serialNum: String,
-            vendor: String,
-            type: String,
-            name: String,
-            size: String,
-        },
-    ],
-    rams: [
-        {
-            slot: Number,
-            manufacturer: String,
-            type: String,
-            serialNo: String,
-            capacity: String,
-        },
-    ],
-    battery: {
-        maxCapacity: String,
-        voltage: String,
-        model: String,
-    },
-    systemInfo: Object,
-    timestamp: String,
-});
-const SystemInfo = mongoose.model("SystemInfo", systemSchema);
 
 // Create Express app
 const app = express();
@@ -71,7 +52,6 @@ app.use(morgan("tiny"));
 
 // Health check route
 app.get("/", (req, res) => {
-    console.log("Health called");
     res.json({ status: "Server is running" });
 });
 app.get("/app/:version", (req, res) => {
@@ -112,55 +92,122 @@ app.get("/latest", (_, res) => {
         }
     });
 });
-type SystemData = {
+type SystemInfoType = {
     ipAddress: string;
+    macAddress: string;
+    loggedInUser: string;
+    loggedDate: string;
+    loggedTime: string;
     os: {
         hostname: string;
         platform: string;
         version: string;
         arch: string;
         serial: string;
+        release: string;
     };
-    disks: {
-        device: string;
-        interfaceType: string;
-        serialNum: string;
-        vendor: string;
-        type: string;
-        name: string;
-        size: string;
-    }[];
-    rams: {
-        slot: number;
+    cpu: {
         manufacturer: string;
-        type: string;
-        serialNo: string;
-        capacity: string;
-    }[];
-    battery:
-        | {
-              maxCapacity: string;
-              voltage: string;
-              model: string;
-          }
-        | "No battery detected";
-    systemInfo: any; // You can replace `any` with a more specific type if needed
+        brand: string;
+        cores: number;
+        speed: string;
+    };
+    disks: [
+        {
+            slot: number;
+            interfaceType: string;
+            serialNum: string;
+            vendor: string;
+            type: string;
+            name: string;
+            size: string;
+        },
+        {
+            device: string;
+            interfaceType: string;
+            serialNum: string;
+            vendor: string;
+            type: string;
+            name: string;
+            size: string;
+        }
+    ];
+    rams: [
+        {
+            slot: number;
+            manufaturer: string;
+            type: string;
+            serialNo: string;
+            capacity: string;
+        }
+    ];
+    gpu: [
+        {
+            slot: number;
+            vendor: string;
+            model: string;
+            vram: number;
+        },
+        {
+            slot: number;
+            vendor: string;
+            model: string;
+            vram: number;
+        }
+    ];
+    monitors: [
+        {
+            slot: number;
+            connection: string;
+        },
+        {
+            slot: number;
+            connection: string;
+        }
+    ];
+    battery: {
+        maxCapacity: string;
+        voltage: string;
+        model: string;
+    };
+    systemInfo: {
+        manufacturer: string;
+        model: string;
+        version: string;
+        serial: string;
+        uuid: string;
+        sku: string;
+        virtual: boolean;
+    };
     timestamp: string;
 };
 
 app.post("/data", async (req, res) => {
+    const data: SystemInfoType = req.body;
     try {
-        const data = req.body;
-        const systemData = new SystemInfo(data);
-        await systemData.save();
-        console.log("System info saved:", data);
-        res.send({ message: "Data saved successfully" });
-    } catch (error: any) {
-        console.error("Error saving data:", error);
-        res.status(500).send({
-            message: "Error saving data",
-            error: error.message,
+        console.log(data);
+        await SystemInfo.create({
+            ipAddress: data.ipAddress,
+            macAddress: data.macAddress,
+            loggedInUser: data.loggedInUser,
+            loggedDate: data.loggedDate,
+            loggedTime: data.loggedTime,
+            os: JSON.stringify(data.os),
+            cpu: JSON.stringify(data.cpu),
+            disks: JSON.stringify(data.disks),
+            rams: JSON.stringify(data.rams),
+            gpu: JSON.stringify(data.gpu),
+            monitors: JSON.stringify(data.monitors),
+            battery: JSON.stringify(data.battery),
+            systemInfo: JSON.stringify(data.systemInfo),
+            timestamp: data.timestamp,
         });
+        console.log("System info saved for:", data.ipAddress);
+        res.send();
+    } catch (error: any) {
+        console.log("Error saving data for:", data.ipAddress);
+        console.error(error);
+        res.status(500).send();
     }
 });
 
