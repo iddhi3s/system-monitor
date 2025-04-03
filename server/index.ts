@@ -4,7 +4,7 @@ import bodyParser from "body-parser";
 import path from "path";
 import fs from "fs";
 import morgan from "morgan";
-import { DataTypes, Sequelize } from "sequelize";
+import { DataTypes, Model, Sequelize } from "sequelize";
 import moment from "moment";
 
 // Database connection
@@ -13,21 +13,61 @@ const sequelize = new Sequelize(process.env.WEB_CREDINTIALS_DB_URL);
 
 // Define the SystemInfo model
 const SystemInfo = sequelize.define("MachineDetail", {
-    serial: { type: DataTypes.STRING },
-    ipAddress: { type: DataTypes.STRING },
-    macAddress: { type: DataTypes.STRING },
-    loggedInUser: { type: DataTypes.STRING },
-    loggedDate: { type: DataTypes.STRING },
-    loggedTime: { type: DataTypes.STRING },
-    os: { type: DataTypes.TEXT },
-    cpu: { type: DataTypes.TEXT },
-    disks: { type: DataTypes.TEXT },
-    rams: { type: DataTypes.TEXT },
-    gpu: { type: DataTypes.TEXT },
-    monitors: { type: DataTypes.TEXT },
-    battery: { type: DataTypes.TEXT },
-    systemInfo: { type: DataTypes.TEXT },
-    timestamp: { type: DataTypes.STRING },
+    Manufacturer: { type: DataTypes.STRING },
+    ManufactureDate: { type: DataTypes.STRING },
+    Model: { type: DataTypes.STRING },
+    SKU: { type: DataTypes.STRING },
+    SerialNo: { type: DataTypes.STRING },
+    IPAddress: { type: DataTypes.STRING },
+    MACAddress: { type: DataTypes.STRING },
+    LoggedUser: { type: DataTypes.STRING },
+    BootDateTime: { type: DataTypes.STRING },
+    Hostname: { type: DataTypes.STRING },
+    OSVersion: { type: DataTypes.STRING },
+    OSArch: { type: DataTypes.STRING },
+    OSSerial: { type: DataTypes.STRING },
+    OSRelease: { type: DataTypes.STRING },
+    CPUBrand: { type: DataTypes.STRING },
+    CPULogicalCores: { type: DataTypes.STRING },
+    CPUPhysicalCores: { type: DataTypes.STRING },
+    CPUSpeed: { type: DataTypes.STRING },
+    StorageDevices: {
+        type: DataTypes.TEXT,
+        get() {
+            return JSON.parse(this.getDataValue("StorageDevices") || "[]");
+        },
+        set(value) {
+            this.setDataValue("StorageDevices", JSON.stringify(value));
+        },
+    },
+    RamDetails: {
+        type: DataTypes.TEXT,
+        get() {
+            return JSON.parse(this.getDataValue("RamDetails") || "[]");
+        },
+        set(value) {
+            this.setDataValue("RamDetails", JSON.stringify(value));
+        },
+    },
+    GpuDevices: {
+        type: DataTypes.TEXT,
+        get() {
+            return JSON.parse(this.getDataValue("GpuDevices") || "[]");
+        },
+        set(value) {
+            this.setDataValue("GpuDevices", JSON.stringify(value));
+        },
+    },
+    MonitorDevices: {
+        type: DataTypes.TEXT,
+        get() {
+            return JSON.parse(this.getDataValue("MonitorDevices") || "[]");
+        },
+        set(value) {
+            this.setDataValue("MonitorDevices", JSON.stringify(value));
+        },
+    },
+    lastSent: { type: DataTypes.STRING },
 });
 
 sequelize
@@ -95,121 +135,85 @@ app.get("/latest", (_, res) => {
     });
 });
 type SystemInfoType = {
-    serial: string;
-    ipAddress: string;
-    macAddress: string;
-    loggedInUser: string;
-    loggedDate: string;
-    loggedTime: string;
-    os: {
-        hostname: string;
-        platform: string;
-        version: string;
-        arch: string;
-        serial: string;
-        release: string;
+    Manufacturer: string;
+    ManufactureDate: string;
+    Model: string;
+    SKU: string;
+    SerialNo: string;
+    IPAddress: string;
+    MACAddress: string;
+    LoggedUser: string;
+    BootDateTime: string;
+    Hostname: string;
+    OSVersion: string;
+    OSArch: string;
+    OSSerial: string;
+    OSRelease: string;
+    CPUBrand: string;
+    CPULogicalCores: string;
+    CPUPhysicalCores: string;
+    CPUSpeed: string;
+    StorageDevices: {
+        Slot: string;
+        MediaType: string;
+        SerialNumber: string;
+        Name: string;
+        Size: number;
     };
-    cpu: {
-        manufacturer: string;
-        brand: string;
-        cores: number;
-        speed: string;
+    RamDetails: {
+        Slot: string;
+        Name: string;
+        Locator: string;
+        SerialNumber: string;
+        Capacity: number;
     };
-    disks: [
-        {
-            slot: number;
-            interfaceType: string;
-            serialNum: string;
-            vendor: string;
-            type: string;
-            name: string;
-            size: string;
-        },
-        {
-            device: string;
-            interfaceType: string;
-            serialNum: string;
-            vendor: string;
-            type: string;
-            name: string;
-            size: string;
-        }
-    ];
-    rams: [
-        {
-            slot: number;
-            manufaturer: string;
-            type: string;
-            serialNo: string;
-            capacity: string;
-        }
-    ];
-    gpu: [
-        {
-            slot: number;
-            vendor: string;
-            model: string;
-            vram: number;
-        },
-        {
-            slot: number;
-            vendor: string;
-            model: string;
-            vram: number;
-        }
-    ];
-    monitors: [
-        {
-            slot: number;
-            connection: string;
-        },
-        {
-            slot: number;
-            connection: string;
-        }
-    ];
-    battery: {
-        maxCapacity: string;
-        voltage: string;
-        model: string;
+    GpuDevices: {
+        Slot: string;
+        Name: string;
+        Description: string;
+        Ram: number;
     };
-    systemInfo: {
-        manufacturer: string;
-        model: string;
-        version: string;
-        serial: string;
-        uuid: string;
-        sku: string;
-        virtual: boolean;
+    MonitorDevices: {
+        Name: string;
+        Model: string;
+        SerialNumber: string;
     };
-    timestamp: string;
+    lastSent: string;
 };
 
 app.post("/data", async (req, res) => {
     const data: SystemInfoType = req.body;
+
     try {
         console.log(data);
         await SystemInfo.create({
-            serial: data.systemInfo.serial,
-            ipAddress: data.ipAddress,
-            macAddress: data.macAddress,
-            loggedInUser: data.loggedInUser,
-            loggedDate: data.loggedDate,
-            loggedTime: data.loggedTime,
-            os: JSON.stringify(data.os),
-            cpu: JSON.stringify(data.cpu),
-            disks: JSON.stringify(data.disks),
-            rams: JSON.stringify(data.rams),
-            gpu: JSON.stringify(data.gpu),
-            monitors: JSON.stringify(data.monitors),
-            battery: JSON.stringify(data.battery),
-            systemInfo: JSON.stringify(data.systemInfo),
-            timestamp: data.timestamp,
+            Manufacturer: data.Manufacturer,
+            ManufactureDate: data.ManufactureDate,
+            Model: data.Model,
+            SKU: data.SKU,
+            SerialNo: data.SerialNo,
+            IPAddress: data.IPAddress,
+            MACAddress: data.MACAddress,
+            LoggedUser: data.LoggedUser,
+            BootDateTime: data.BootDateTime,
+            Hostname: data.Hostname,
+            OSVersion: data.OSVersion,
+            OSArch: data.OSArch,
+            OSSerial: data.OSSerial,
+            OSRelease: data.OSRelease,
+            CPUBrand: data.CPUBrand,
+            CPULogicalCores: data.CPULogicalCores,
+            CPUPhysicalCores: data.CPUPhysicalCores,
+            CPUSpeed: data.CPUSpeed,
+            StorageDevices: data.StorageDevices,
+            RamDetails: data.RamDetails,
+            GpuDevices: data.GpuDevices,
+            MonitorDevices: data.MonitorDevices,
         });
-        console.log("System info saved for:", data.ipAddress);
+        console.log("System info saved for:", data.MACAddress);
         res.send();
     } catch (error: any) {
-        console.log("Error saving data for:", data.ipAddress);
+        console.log("Error saving data for:", data.MACAddress);
         console.error(error);
         res.status(500).send();
     }
