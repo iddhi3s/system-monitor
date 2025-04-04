@@ -1,6 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useGetMachine } from "../services/useGetMachine";
-import { useEffect, useState } from "react";
 
 const MachineDetails = () => {
     const { serial } = useParams();

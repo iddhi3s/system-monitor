@@ -1,9 +1,8 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
     const navigate = useNavigate();
-    const onSubmit = (e) => {
+    const onSubmit = (e: any) => {
         e.preventDefault();
         navigate("/home");
     };

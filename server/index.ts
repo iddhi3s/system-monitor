@@ -314,12 +314,12 @@ app.get("/machines/inactive", async (req, res) => {
 
 app.get("/machines/os-distribution", async (req, res) => {
     try {
-        const machines = await SystemInfo.findAll({
+        const machines: any = await SystemInfo.findAll({
             attributes: ["OSVersion"],
         });
         const osCounts: Record<string, number> = {};
 
-        machines.forEach((machine) => {
+        machines.forEach((machine: any) => {
             const version = machine.OSVersion || "Unknown";
             osCounts[version] = (osCounts[version] || 0) + 1;
         });

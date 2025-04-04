@@ -25,35 +25,39 @@ const logger = winston.createLogger({
     ],
 });
 
-// Download Latest Exe
 async function downloadLatestExe() {
-    logger.info("Downloading EXE");
     const filePath = path.join(LOCATION, "app.exe");
 
-    try {
-        const response = await axios.get(URL, {
-            responseType: "stream",
-        });
-        const writer = fs.createWriteStream(filePath);
+    while (true) {
+        logger.info("Downloading EXE");
 
-        return new Promise((resolve, reject) => {
-            response.data.pipe(writer);
+        try {
+            const response = await axios.get(URL, {
+                responseType: "stream",
+            });
+            const writer = fs.createWriteStream(filePath);
 
-            writer.on("finish", () => {
-                logger.info("Latest Version Downloaded");
-                resolve(filePath);
+            const downloadResult = await new Promise((resolve, reject) => {
+                response.data.pipe(writer);
+
+                writer.on("finish", () => {
+                    logger.info("Latest Version Downloaded");
+                    resolve(true);
+                });
+
+                writer.on("error", (err) => {
+                    logger.info(`Error writing file: ${err.message}`);
+                    resolve(false); // Will retry
+                });
             });
 
-            writer.on("error", async (err) => {
-                logger.info(`Error writing file: ${err.message}`);
-                resolve(await downloadLatestExe()); // Retry download
-            });
-        });
-    } catch (error) {
-        logger.info("Download error: " + error.message);
+            if (downloadResult) return filePath;
+        } catch (error) {
+            logger.info("Download error: " + error.message);
+        }
+
         logger.info("Waiting 5 minutes before retrying...");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        return await downloadLatestExe(); // Retry after delay
+        await new Promise((resolve) => setTimeout(resolve, 5 * 60 * 1000)); // 5 minutes
     }
 }
 
