@@ -6,34 +6,51 @@ import {
     Legend,
     ResponsiveContainer,
 } from "recharts";
+import { useGetOsDist } from "../services/useGetOSDist";
 
-const osData = [
-    { name: "Windows 10", count: 60 },
-    { name: "Windows 11", count: 40 },
+const COLORS = [
+    "#0088FE",
+    "#00C49F",
+    "#FFBB28",
+    "#FF8042",
+    "#AF19FF",
+    "#FF3C38",
+    "#FF8C00",
+    "#4CAF50",
+    "#1E90FF",
+    "#C71585",
 ];
 
-const COLORS = ["#0088FE", "#00C49F"];
-
 export default function OSChart() {
+    const { data, isLoading, isError } = useGetOsDist();
     return (
-        <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-                <Pie
-                    data={osData}
-                    dataKey="count"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label
-                >
-                    {osData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index]} />
-                    ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-            </PieChart>
-        </ResponsiveContainer>
+        <>
+            {isLoading && <div>Loading...</div>}
+            {isError && <div>Error loading data</div>}
+            {!isLoading && !isError && data && (
+                <ResponsiveContainer className="w-full">
+                    <PieChart>
+                        <Pie
+                            data={data}
+                            dataKey="count"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            label={({ count }) => count} //`${name} (${count})`
+                        >
+                            {/* @ts-ignore */}
+                            {data.map((_, index) => (
+                                <Cell
+                                    key={`cell-${index}`}
+                                    fill={COLORS[index % COLORS.length]}
+                                />
+                            ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                    </PieChart>
+                </ResponsiveContainer>
+            )}
+        </>
     );
 }

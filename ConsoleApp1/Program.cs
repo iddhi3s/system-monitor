@@ -2,11 +2,13 @@
 using System.Linq;
 using System;
 using System.Threading;
+using System.IO;
 
 namespace ConsoleApp1
 {
     internal class Program
     {
+        private static Writer writer = new Writer();
         private static SystemDetails systemDetails;
         static void Main(string[] args)
         {
@@ -31,8 +33,8 @@ namespace ConsoleApp1
                 catch (Exception ex)
                 {
                     client.Dispose();
-                    Console.WriteLine("Error: " + ex.Message);
-                    Console.WriteLine("Retrying in 5 minutes...");
+                    writer.WriteLog("Error: " + ex.Message);
+                    writer.WriteLog("Retrying in 5 minutes...");
                     Thread.Sleep(1000);
                 }
             }
@@ -73,14 +75,14 @@ namespace ConsoleApp1
                 }
                 else
                 {
-                    Console.WriteLine("Unable to retrieve login time.");
+                    writer.WriteLog("Unable to retrieve login time.");
                 }
 
                 searcher.Dispose(); 
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error retrieving OS details: " + ex.Message);
+                writer.WriteLog("Error retrieving OS details: " + ex.Message);
             }
         }
         private static void GetSerialNo()
@@ -161,13 +163,13 @@ namespace ConsoleApp1
                 }
                 else
                 {
-                    Console.WriteLine("CPU details not found.");
+                    writer.WriteLog("CPU details not found.");
                 }
                 searcher.Dispose();
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error retrieving CPU details: " + ex.Message);
+                writer.WriteLog("Error retrieving CPU details: " + ex.Message);
             }
         }
         private static void GetStorageDetails()
@@ -214,7 +216,7 @@ namespace ConsoleApp1
             }
             catch (Exception)
             {
-                Console.WriteLine("MSFT_PhysicalDisk not found. Falling back to Win32_DiskDrive (Windows 7).");
+                writer.WriteLog("MSFT_PhysicalDisk not found. Falling back to Win32_DiskDrive (Windows 7).");
                 try
                 {
                     // Windows 7 Compatible Method
@@ -244,7 +246,7 @@ namespace ConsoleApp1
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error retrieving storage details: " + ex.Message);
+                    writer.WriteLog("Error retrieving storage details: " + ex.Message);
                 }
             }
         }
@@ -276,7 +278,7 @@ namespace ConsoleApp1
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error retrieving RAM details: " + ex.Message);
+                writer.WriteLog("Error retrieving RAM details: " + ex.Message);
             }
         }
         private static void GetGPUDetails()
@@ -305,7 +307,7 @@ namespace ConsoleApp1
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error retrieving RAM details: " + ex.Message);
+                writer.WriteLog("Error retrieving RAM details: " + ex.Message);
             }
         }
         private static void GetMonitorDetails()
@@ -330,7 +332,7 @@ namespace ConsoleApp1
             }
             catch (Exception)
             {
-                Console.WriteLine("WMIMonitorID not found. Falling back to Win32_DesktopMonitor (Windows 7).");
+                writer.WriteLog("WMIMonitorID not found. Falling back to Win32_DesktopMonitor (Windows 7).");
 
                 try
                 {
@@ -354,7 +356,7 @@ namespace ConsoleApp1
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error retrieving monitor details: " + ex.Message);
+                    writer.WriteLog("Error retrieving monitor details: " + ex.Message);
                 }
             }
         }
@@ -381,7 +383,7 @@ namespace ConsoleApp1
             }
             catch (Exception)
             {
-                Console.WriteLine("Error retrieving system information from MS_SystemInformation. Falling back to Win32_ComputerSystem and Win32_BIOS.");
+                writer.WriteLog("Error retrieving system information from MS_SystemInformation. Falling back to Win32_ComputerSystem and Win32_BIOS.");
                 try
                 {
                     // Get manufacturer and model from Win32_ComputerSystem
@@ -402,7 +404,7 @@ namespace ConsoleApp1
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error retrieving system information (Windows 7 fallback): " + ex.Message);
+                    writer.WriteLog("Error retrieving system information (Windows 7 fallback): " + ex.Message);
                 }
             }
         }

@@ -4,12 +4,14 @@ import bodyParser from "body-parser";
 import path from "path";
 import fs from "fs";
 import morgan from "morgan";
-import { DataTypes, Model, Sequelize } from "sequelize";
+import { DataTypes, Model, Op, Sequelize } from "sequelize";
 import moment from "moment";
 
 // Database connection
 // @ts-ignore
-const sequelize = new Sequelize(process.env.WEB_CREDINTIALS_DB_URL);
+const sequelize = new Sequelize(process.env.WEB_CREDINTIALS_DB_URL, {
+    logging: false,
+});
 
 // Define the SystemInfo model
 const SystemInfo = sequelize.define("MachineDetail", {
@@ -67,7 +69,6 @@ const SystemInfo = sequelize.define("MachineDetail", {
             this.setDataValue("MonitorDevices", JSON.stringify(value));
         },
     },
-    lastSent: { type: DataTypes.STRING },
 });
 
 sequelize
@@ -96,16 +97,21 @@ app.use(morgan("tiny"));
 app.get("/", (req, res) => {
     res.json({ status: "Server is running" });
 });
-app.get("/app/:version", (req, res) => {
-    const appVer = req.params.version;
 
-    if (appVer === appVersion) {
-        res.send({ message: "NO_UPDATE" });
-        return;
-    }
+// Check if new release available
+// app.get("/app/:version", (req, res) => {
+//     const appVer = req.params.version;
 
-    res.send({ message: "NEW_UPDATE", new_version: appVersion });
-});
+//     if (appVer === appVersion) {
+//         res.send({ message: "NO_UPDATE" });
+//         re
+// turn;
+//     }
+
+//     res.send({ message: "NEW_UPDATE", new_version: appVersion });
+// });
+
+// Send the latest exe file
 app.get("/latest", (_, res) => {
     const exeFileName = `3S_Server_Client ${appVersion}.exe`;
     const filePath = path.join(process.cwd(), "public", exeFileName);
@@ -134,6 +140,7 @@ app.get("/latest", (_, res) => {
         }
     });
 });
+
 type SystemInfoType = {
     Manufacturer: string;
     ManufactureDate: string;
@@ -159,58 +166,91 @@ type SystemInfoType = {
         SerialNumber: string;
         Name: string;
         Size: number;
-    };
+    }[];
     RamDetails: {
         Slot: string;
         Name: string;
         Locator: string;
         SerialNumber: string;
         Capacity: number;
-    };
+    }[];
     GpuDevices: {
         Slot: string;
         Name: string;
         Description: string;
         Ram: number;
-    };
+    }[];
     MonitorDevices: {
         Name: string;
         Model: string;
         SerialNumber: string;
-    };
-    lastSent: string;
+    }[];
+    createdAt: any;
+    updatedAt: any;
 };
 
+// Recieve the system information to here
 app.post("/data", async (req, res) => {
     const data: SystemInfoType = req.body;
 
     try {
-        console.log(data);
-        await SystemInfo.create({
-            Manufacturer: data.Manufacturer,
-            ManufactureDate: data.ManufactureDate,
-            Model: data.Model,
-            SKU: data.SKU,
-            SerialNo: data.SerialNo,
-            IPAddress: data.IPAddress,
-            MACAddress: data.MACAddress,
-            LoggedUser: data.LoggedUser,
-            BootDateTime: data.BootDateTime,
-            Hostname: data.Hostname,
-            OSVersion: data.OSVersion,
-            OSArch: data.OSArch,
-            OSSerial: data.OSSerial,
-            OSRelease: data.OSRelease,
-            CPUBrand: data.CPUBrand,
-            CPULogicalCores: data.CPULogicalCores,
-            CPUPhysicalCores: data.CPUPhysicalCores,
-            CPUSpeed: data.CPUSpeed,
-            StorageDevices: data.StorageDevices,
-            RamDetails: data.RamDetails,
-            GpuDevices: data.GpuDevices,
-            MonitorDevices: data.MonitorDevices,
+        const exist = await SystemInfo.findOne({
+            where: {
+                MACAddress: data.MACAddress,
+            },
         });
-        console.log("System info saved for:", data.MACAddress);
+        if (exist) {
+            await exist.update({
+                Manufacturer: data.Manufacturer,
+                ManufactureDate: data.ManufactureDate,
+                Model: data.Model,
+                SKU: data.SKU,
+                SerialNo: data.SerialNo,
+                IPAddress: data.IPAddress,
+                LoggedUser: data.LoggedUser,
+                BootDateTime: data.BootDateTime,
+                Hostname: data.Hostname,
+                OSVersion: data.OSVersion,
+                OSArch: data.OSArch,
+                OSSerial: data.OSSerial,
+                OSRelease: data.OSRelease,
+                CPUBrand: data.CPUBrand,
+                CPULogicalCores: data.CPULogicalCores,
+                CPUPhysicalCores: data.CPUPhysicalCores,
+                CPUSpeed: data.CPUSpeed,
+                StorageDevices: data.StorageDevices,
+                RamDetails: data.RamDetails,
+                GpuDevices: data.GpuDevices,
+                MonitorDevices: data.MonitorDevices,
+            });
+            console.log("System info updated for:", data.MACAddress);
+        } else {
+            await SystemInfo.create({
+                Manufacturer: data.Manufacturer,
+                ManufactureDate: data.ManufactureDate,
+                Model: data.Model,
+                SKU: data.SKU,
+                SerialNo: data.SerialNo,
+                IPAddress: data.IPAddress,
+                MACAddress: data.MACAddress,
+                LoggedUser: data.LoggedUser,
+                BootDateTime: data.BootDateTime,
+                Hostname: data.Hostname,
+                OSVersion: data.OSVersion,
+                OSArch: data.OSArch,
+                OSSerial: data.OSSerial,
+                OSRelease: data.OSRelease,
+                CPUBrand: data.CPUBrand,
+                CPULogicalCores: data.CPULogicalCores,
+                CPUPhysicalCores: data.CPUPhysicalCores,
+                CPUSpeed: data.CPUSpeed,
+                StorageDevices: data.StorageDevices,
+                RamDetails: data.RamDetails,
+                GpuDevices: data.GpuDevices,
+                MonitorDevices: data.MonitorDevices,
+            });
+            console.log("System info saved for:", data.MACAddress);
+        }
         res.send();
     } catch (error: any) {
         console.log("Error saving data for:", data.MACAddress);
@@ -219,30 +259,21 @@ app.post("/data", async (req, res) => {
     }
 });
 
+// Send all the machines
 app.get("/machines", async (req, res) => {
     try {
-        const [latestMachines] = await sequelize.query(`
-            SELECT * FROM MachineDetails m1
-            WHERE createdAt = (
-                SELECT MAX(createdAt) FROM MachineDetails m2
-                WHERE m1.macAddress = m2.macAddress
-            )
-        `);
+        const latestMachines = await SystemInfo.findAll({
+            attributes: ["IPAddress", "updatedAt", "Hostname", "MACAddress"],
+        });
 
         const modifiedMachines = latestMachines.map((machine: any) => {
-            const timeAgo = moment(machine.timestamp).fromNow();
+            const timeAgo = moment(machine.updatedAt).fromNow();
             return {
-                ...machine,
-                os: JSON.parse(machine.os),
-                cpu: JSON.parse(machine.cpu),
-                disks: JSON.parse(machine.disks),
-                rams: JSON.parse(machine.rams),
-                gpu: JSON.parse(machine.gpu),
-                monitors: JSON.parse(machine.monitors),
-                battery: JSON.parse(machine.battery),
-                systemInfo: JSON.parse(machine.systemInfo),
+                IPAddress: machine.IPAddress,
+                Hostname: machine.Hostname,
+                MACAddress: machine.MACAddress,
                 lastSent: timeAgo,
-                timestamp: moment(machine.timestamp).format("YYYY/MM/DD HH:mm"),
+                updatedAt: moment(machine.updatedAt).format("YYYY/MM/DD HH:mm"),
             };
         });
 
@@ -255,14 +286,9 @@ app.get("/machines", async (req, res) => {
 
 app.get("/machines/total", async (req, res) => {
     try {
-        const [result] = await sequelize.query(`
-            SELECT COUNT(DISTINCT serial) AS total FROM MachineDetails
-        `);
+        const total = await SystemInfo.count();
 
-        const totalMachines = result[0]?.total || 0; // Extract count safely
-
-        console.log("Total Machines:", totalMachines);
-        res.send({ total: totalMachines });
+        res.send({ total });
     } catch (error) {
         console.error("Error fetching total machines:", error);
         res.status(500).json({ error: "Internal Server Error" });
@@ -271,95 +297,98 @@ app.get("/machines/total", async (req, res) => {
 
 app.get("/machines/inactive", async (req, res) => {
     try {
-        const [result] = await sequelize.query(`
-            SELECT COUNT(*) AS inactiveCount 
-            FROM MachineDetails
-            WHERE timestamp < NOW() - INTERVAL 2 DAY
-        `);
+        const total = await SystemInfo.count({
+            where: {
+                updatedAt: {
+                    [Op.lt]: Sequelize.literal("NOW() - INTERVAL 3 DAY"),
+                },
+            },
+        });
 
-        res.json({ inactiveCount: result[0].inactiveCount });
+        res.json({ total });
     } catch (error) {
         console.error("Error fetching inactive machine count:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
-app.get("/machines/ram-distribution", async (req, res) => {
+app.get("/machines/os-distribution", async (req, res) => {
     try {
-        const [latestMachines] = await sequelize.query(`
-            WITH RankedMachines AS (
-                SELECT *,
-                    ROW_NUMBER() OVER (PARTITION BY serial ORDER BY createdAt DESC) AS rn
-                FROM MachineDetails
-            )
-            SELECT JSON_UNQUOTE(JSON_EXTRACT(rams, '$[0].capacity')) AS ram
-            FROM RankedMachines
-            WHERE rn = 1;
-        `);
+        const machines = await SystemInfo.findAll({
+            attributes: ["OSVersion"],
+        });
+        const osCounts: Record<string, number> = {};
 
-        const ramCounts = latestMachines.reduce(
-            (acc: Record<string, number>, machine: any) => {
-                const ramSize = machine.ram + "GB";
-                acc[ramSize] = (acc[ramSize] || 0) + 1;
-                return acc;
-            },
-            {}
-        );
-
-        const formattedData = Object.entries(ramCounts).map(([ram, count]) => ({
-            ram,
+        machines.forEach((machine) => {
+            const version = machine.OSVersion || "Unknown";
+            osCounts[version] = (osCounts[version] || 0) + 1;
+        });
+        const distribution = Object.entries(osCounts).map(([name, count]) => ({
+            name,
             count,
         }));
-
-        res.json(formattedData);
+        res.json(distribution);
     } catch (error) {
         console.error("Error fetching RAM distribution:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
-app.get("/machines/:serial", async (req, res) => {
-    const { serial } = req.params;
+// Get single machine by MAC Address
+app.get("/machines/:mac", async (req, res) => {
+    const { mac } = req.params;
 
     try {
-        // Query to get all records for a given serial
-        const machines = await sequelize.query(
-            `
-            SELECT * FROM MachineDetails m1
-            WHERE m1.serial = :serial
-            ORDER BY m1.createdAt DESC
-        `,
-            {
-                replacements: { serial },
-                type: sequelize.QueryTypes.SELECT,
-            }
-        );
-
-        // Modify the data with necessary transformations
-        const modifiedMachines = machines.map((machine: any) => {
-            const timeAgo = moment(machine.timestamp).fromNow();
-            return {
-                ...machine,
-                os: JSON.parse(machine.os),
-                cpu: JSON.parse(machine.cpu),
-                disks: JSON.parse(machine.disks),
-                rams: JSON.parse(machine.rams),
-                gpu: JSON.parse(machine.gpu),
-                monitors: JSON.parse(machine.monitors),
-                battery: JSON.parse(machine.battery),
-                systemInfo: JSON.parse(machine.systemInfo),
-                lastSent: timeAgo, // Display time since last sent
-                timestamp: moment(machine.timestamp).format("YYYY/MM/DD HH:mm"), // Format timestamp
-            };
+        const machine: any = await SystemInfo.findOne({
+            where: {
+                MACAddress: mac,
+            },
         });
-
-        res.send(modifiedMachines);
+        if (!machine) {
+            res.status(404).send("Machine not found");
+            return;
+        }
+        // @ts-ignore
+        const timeAgo = moment(machine.updatedAt).fromNow();
+        machine.RamDetails = machine.RamDetails.map((ram: any) => ({
+            ...ram,
+            Capacity: `${ram.Capacity} GB`,
+        }));
+        machine.GpuDevices = machine.GpuDevices.map((gpu: any) => ({
+            ...gpu,
+            Ram: `${Math.round(gpu.Ram)} GB`,
+        }));
+        res.send({
+            Manufacturer: machine.Manufacturer,
+            ManufactureDate: machine.ManufactureDate,
+            Model: machine.Model,
+            SKU: machine.SKU,
+            SerialNo: machine.SerialNo,
+            IPAddress: machine.IPAddress,
+            MACAddress: machine.MACAddress,
+            LoggedUser: machine.LoggedUser,
+            BootDateTime: machine.BootDateTime,
+            Hostname: machine.Hostname,
+            OSVersion: machine.OSVersion,
+            OSArch: machine.OSArch,
+            OSSerial: machine.OSSerial,
+            OSRelease: machine.OSRelease,
+            CPUBrand: machine.CPUBrand,
+            CPULogicalCores: machine.CPULogicalCores,
+            CPUPhysicalCores: machine.CPUPhysicalCores,
+            CPUSpeed: `${Math.floor(machine.CPUSpeed / 10) / 100} GHz`,
+            StorageDevices: machine.StorageDevices,
+            RamDetails: machine.RamDetails,
+            GpuDevices: machine.GpuDevices,
+            MonitorDevices: machine.MonitorDevices,
+            lastSent: timeAgo,
+            updatedAt: moment(machine.updatedAt).format("YYYY/MM/DD HH:mm"),
+        });
     } catch (error) {
         console.error("Error fetching machine details:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
-
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

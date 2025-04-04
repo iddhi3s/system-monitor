@@ -17,6 +17,9 @@ const Machines = () => {
                         <thead>
                             <tr className="bg-gray-700 text-white text-left">
                                 <th className="border border-gray-500 px-4 py-3">
+                                    MAC Address
+                                </th>
+                                <th className="border border-gray-500 px-4 py-3">
                                     IP Address
                                 </th>
                                 <th className="border border-gray-500 px-4 py-3">
@@ -73,20 +76,22 @@ const Machines = () => {
                                 </tr>
                             ) : (
                                 data?.map((machine: any, i: number) => {
-                                    console.log(machine);
                                     return (
                                         <tr
                                             key={i}
                                             className="odd:bg-gray-100 hover:bg-gray-200 transition"
                                         >
                                             <td className="border border-gray-300 px-4 py-3">
-                                                {machine.ipAddress}
+                                                {machine.MACAddress}
                                             </td>
                                             <td className="border border-gray-300 px-4 py-3">
-                                                {machine.timestamp}
+                                                {machine.IPAddress}
                                             </td>
                                             <td className="border border-gray-300 px-4 py-3">
-                                                {machine.os.hostname}
+                                                {machine.updatedAt}
+                                            </td>
+                                            <td className="border border-gray-300 px-4 py-3">
+                                                {machine.Hostname}
                                             </td>
                                             <td className="border border-gray-300 px-4 py-3">
                                                 {machine.lastSent}
@@ -96,7 +101,7 @@ const Machines = () => {
                                                     onClick={() => {
                                                         navigate(
                                                             "/machines/" +
-                                                                machine.serial
+                                                                machine.MACAddress
                                                         );
                                                     }}
                                                     className="bg-green-600 text-white px-4 py-2 rounded-xl"

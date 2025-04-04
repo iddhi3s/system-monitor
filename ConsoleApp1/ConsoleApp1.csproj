@@ -120,6 +120,7 @@
     <Compile Include="RamDetails.cs" />
     <Compile Include="StorageDevice.cs" />
     <Compile Include="SystemDetails.cs" />
+    <Compile Include="Writer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

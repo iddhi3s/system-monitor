@@ -7,106 +7,82 @@ const MachineDetails = () => {
     const navigate = useNavigate();
     if (!serial) navigate("/machines");
 
-    const [selectedMachine, setSelectedMachine] = useState<any | null>(null);
     // @ts-ignore
     const { data, isLoading, isError } = useGetMachine(serial);
-
-    useEffect(() => {
-        if (isLoading || isError) return;
-        if (!data || data.length === 0) return;
-        setSelectedMachine(data[0]);
-    }, [data, isLoading, isError]);
-
+    console.log(data);
     return (
         <div className="w-full h-screen p-4 flex gap-4">
-            {/* History Sidebar */}
-            <div className="w-1/3 h-full flex flex-col gap-4">
-                <h1 className="text-xl text-center font-bold">
-                    History for: {serial}
-                </h1>
-                {data &&
-                    data.map((hist: any, index: number) => (
-                        <button
-                            key={index}
-                            onClick={() => setSelectedMachine(hist)}
-                            className={`w-full p-4 border rounded-xl cursor-pointer ${
-                                selectedMachine?.id === hist.id
-                                    ? "bg-gray-200"
-                                    : ""
-                            }`}
-                        >
-                            {hist.lastSent}
-                        </button>
-                    ))}
-            </div>
-
             {/* Machine Details */}
-            <div className="w-2/3 h-full px-4 border-l overflow-y-auto">
-                {!selectedMachine ? (
-                    <div className="h-full flex justify-center items-center font-bold text-2xl">
-                        Select an item to view
-                    </div>
-                ) : (
+            <div className="w-full h-full px-4 border-l overflow-y-auto">
+                <h1 className="text-2xl font-semibold mb-4">Machine Details</h1>
+                {isLoading && <p>Loading...</p>}
+                {isError && <p>Error loading machine details</p>}
+                {data && (
                     <div className="grid grid-cols-2 gap-4">
                         <div className="col-span-2 text-lg font-semibold border-b pb-2">
                             General Information
                         </div>
-                        <Detail label="Serial" value={selectedMachine.serial} />
+                        <Detail label="Serial" value={data?.SerialNo} />
+                        <Detail label="IP Address" value={data?.IPAddress} />
+                        <Detail label="MAC Address" value={data?.MACAddress} />
+                        <Detail label="Logged User" value={data?.LoggedUser} />
                         <Detail
-                            label="IP Address"
-                            value={selectedMachine.ipAddress}
+                            label="Booted DateTime"
+                            value={new Date(
+                                data?.BootDateTime
+                            ).toLocaleString()}
                         />
+                        <Detail label="Last Sent" value={data?.lastSent} />
+
+                        <div className="col-span-2 text-lg font-semibold border-b pb-2">
+                            System Information
+                        </div>
                         <Detail
-                            label="MAC Address"
-                            value={selectedMachine.macAddress}
+                            label="Manufacture"
+                            value={data?.Manufacturer}
                         />
+                        <Detail label="Model" value={data?.Model} />
+                        <Detail label="SKU" value={data?.SKU} />
                         <Detail
-                            label="Logged User"
-                            value={selectedMachine.loggedInUser}
-                        />
-                        <Detail
-                            label="Logged Date"
-                            value={selectedMachine.loggedDate}
-                        />
-                        <Detail
-                            label="Logged Time"
-                            value={selectedMachine.loggedTime}
-                        />
-                        <Detail
-                            label="Last Sent"
-                            value={selectedMachine.lastSent}
-                        />
-                        <Detail
-                            label="Timestamp"
-                            value={selectedMachine.timestamp}
+                            label="Manufacture Date"
+                            value={data?.ManufactureDate}
                         />
 
                         <div className="col-span-2 text-lg font-semibold border-b pb-2">
                             OS Information
                         </div>
-                        {Object.entries(selectedMachine.os).map(
-                            ([key, value]) => (
-                                <Detail key={key} label={key} value={value} />
-                            )
-                        )}
-
+                        <Detail label="Version" value={data?.OSVersion} />
+                        <Detail label="Serial" value={data?.OSSerial} />
+                        <Detail label="Release" value={data?.OSRelease} />
+                        <Detail label="Arch" value={data?.OSArch} />
                         <div className="col-span-2 text-lg font-semibold border-b pb-2">
                             CPU Information
                         </div>
-                        {Object.entries(selectedMachine.cpu).map(
-                            ([key, value]) => (
-                                <Detail key={key} label={key} value={value} />
-                            )
-                        )}
+                        <Detail label="Brand" value={data?.CPUBrand} />
+                        <Detail label="Max Speed" value={data?.CPUSpeed} />
+                        <Detail
+                            label="Physical Cores"
+                            value={data?.CPUPhysicalCores}
+                        />
+                        <Detail
+                            label="Logical Cores"
+                            value={data?.CPULogicalCores}
+                        />
 
                         <div className="col-span-2 text-lg font-semibold border-b pb-2">
                             Storage Devices
                         </div>
-                        {selectedMachine.disks.map(
+
+                        {data?.StorageDevices.length === 0 && (
+                            <p className="col-span-2 text-center">
+                                No storage devices found
+                            </p>
+                        )}
+                        {data?.StorageDevices.map(
                             (disk: any, index: number) => (
                                 <div
                                     key={index}
-                                    className="col-span-2 border p-2 rounded-md"
+                                    className="border p-2 rounded-md"
                                 >
                                     {Object.entries(disk).map(
                                         ([key, value]) => (
@@ -124,12 +100,14 @@ const MachineDetails = () => {
                         <div className="col-span-2 text-lg font-semibold border-b pb-2">
                             RAM Details
                         </div>
-                        {selectedMachine.rams.map((ram: any, index: number) => (
-                            <div
-                                key={index}
-                                className="col-span-2 border p-2 rounded-md"
-                            >
-                                {Object.entries(ram).map(([key, value]) => (
+                        {data?.RamDetails.length === 0 && (
+                            <p className="col-span-2 text-center">
+                                No storage devices found
+                            </p>
+                        )}
+                        {data?.RamDetails.map((disk: any, index: number) => (
+                            <div key={index} className="border p-2 rounded-md">
+                                {Object.entries(disk).map(([key, value]) => (
                                     <Detail
                                         key={key}
                                         label={key}
@@ -142,12 +120,14 @@ const MachineDetails = () => {
                         <div className="col-span-2 text-lg font-semibold border-b pb-2">
                             GPU Details
                         </div>
-                        {selectedMachine.gpu.map((gpu: any, index: number) => (
-                            <div
-                                key={index}
-                                className="col-span-2 border p-2 rounded-md"
-                            >
-                                {Object.entries(gpu).map(([key, value]) => (
+                        {data?.GpuDevices.length === 0 && (
+                            <p className="col-span-2 text-center">
+                                No storage devices found
+                            </p>
+                        )}
+                        {data?.GpuDevices.map((disk: any, index: number) => (
+                            <div key={index} className="border p-2 rounded-md">
+                                {Object.entries(disk).map(([key, value]) => (
                                     <Detail
                                         key={key}
                                         label={key}
@@ -160,31 +140,27 @@ const MachineDetails = () => {
                         <div className="col-span-2 text-lg font-semibold border-b pb-2">
                             Monitor Details
                         </div>
-                        {selectedMachine.monitors.map(
-                            (monitor: any, index: number) => (
-                                <Detail
+                        {data?.MonitorDevices.length === 0 && (
+                            <p className="col-span-2 text-center">
+                                No storage devices found
+                            </p>
+                        )}
+                        {data?.MonitorDevices.map(
+                            (disk: any, index: number) => (
+                                <div
                                     key={index}
-                                    label={`Monitor ${index + 1}`}
-                                    value={monitor.connection}
-                                />
-                            )
-                        )}
-
-                        <div className="col-span-2 text-lg font-semibold border-b pb-2">
-                            Battery Details
-                        </div>
-                        {Object.entries(selectedMachine.battery).map(
-                            ([key, value]) => (
-                                <Detail key={key} label={key} value={value} />
-                            )
-                        )}
-
-                        <div className="col-span-2 text-lg font-semibold border-b pb-2">
-                            System Information
-                        </div>
-                        {Object.entries(selectedMachine.systemInfo).map(
-                            ([key, value]) => (
-                                <Detail key={key} label={key} value={value} />
+                                    className="border p-2 rounded-md"
+                                >
+                                    {Object.entries(disk).map(
+                                        ([key, value]) => (
+                                            <Detail
+                                                key={key}
+                                                label={key}
+                                                value={value}
+                                            />
+                                        )
+                                    )}
+                                </div>
                             )
                         )}
                     </div>

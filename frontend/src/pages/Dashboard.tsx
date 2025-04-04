@@ -1,6 +1,4 @@
 import OSChart from "../components/OSChart";
-import RAMChart from "../components/RAMChart";
-import StorageChart from "../components/StorageChart";
 import { useGetInactiveMachines } from "../services/useGetInactive";
 import { useGetTotalMachines } from "../services/useGetTotal";
 
@@ -31,7 +29,7 @@ const Dashboard = () => {
                     <h1 className="font-bold text-2xl">
                         {inactiveLoading && "Loading"}
                         {inactiveError && "Error"}
-                        {inactive && inactive.inactiveCount}
+                        {inactive && inactive.total}
                     </h1>
                 </div>
                 <div className="border bg-gray-50 rounded-2xl min-h-28 p-3 flex flex-col gap-2 items-center justify-center">
@@ -47,14 +45,12 @@ const Dashboard = () => {
                     <h1 className="font-bold text-2xl">
                         {inactiveLoading && "Loading"}
                         {inactiveError && "Error"}
-                        {inactive && inactive.inactiveCount}
+                        {inactive && inactive.total}
                     </h1>
                 </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-                <RAMChart />
+            <div className="w-full h-full flex gap-4">
                 <OSChart />
-                <StorageChart />
             </div>
         </div>
     );

@@ -52,74 +52,75 @@ namespace ConsoleApp1
         }
         public void PrintDetails()
         {
-            Console.WriteLine("____________________");
-            Console.WriteLine("Manufacturer: " + this.Manufacturer);
-            Console.WriteLine("ManufactureDate: " + this.ManufactureDate);
-            Console.WriteLine("Model Name: " + this.Model);
-            Console.WriteLine("SKU: " + this.SKU);
-            Console.WriteLine("____________________");
-            Console.WriteLine("Serial No: " + this.SerialNo);
-            Console.WriteLine("IP Address: " + this.IPAddress);
-            Console.WriteLine("MAC Address: " + this.MACAddress);
-            Console.WriteLine("Logged User: " + this.LoggedUser);
-            Console.WriteLine("Boot Time: " + this.BootDateTime);
-            Console.WriteLine("Hostname: " + this.Hostname);
-            Console.WriteLine("____________________");
-            Console.WriteLine("CPU Brand: " + this.CPUBrand);
-            Console.WriteLine("CPU Logical: " + this.CPULogicalCores);
-            Console.WriteLine("CPU Physical: " + this.CPUPhysicalCores);
-            Console.WriteLine("CPU Speed: " + this.CPUSpeed/1000.00+"GHz");
-            Console.WriteLine("____________________");
-            Console.WriteLine("OS Version: " + this.OSVersion);
-            Console.WriteLine("OS Release: " + this.OSRelease);
-            Console.WriteLine("OS Arch: " + this.OSArch);
-            Console.WriteLine("OS Serial: " + this.OSSerial);
-            Console.WriteLine("____________________");
-            Console.WriteLine("Storage Devices:");
-            Console.WriteLine("____");
+            Writer writer = new Writer();
+            writer.WriteLog("____________________");
+            writer.WriteLog("Manufacturer: " + this.Manufacturer);
+            writer.WriteLog("ManufactureDate: " + this.ManufactureDate);
+            writer.WriteLog("Model Name: " + this.Model);
+            writer.WriteLog("SKU: " + this.SKU);
+            writer.WriteLog("____________________");
+            writer.WriteLog("Serial No: " + this.SerialNo);
+            writer.WriteLog("IP Address: " + this.IPAddress);
+            writer.WriteLog("MAC Address: " + this.MACAddress);
+            writer.WriteLog("Logged User: " + this.LoggedUser);
+            writer.WriteLog("Boot Time: " + this.BootDateTime);
+            writer.WriteLog("Hostname: " + this.Hostname);
+            writer.WriteLog("____________________");
+            writer.WriteLog("CPU Brand: " + this.CPUBrand);
+            writer.WriteLog("CPU Logical: " + this.CPULogicalCores);
+            writer.WriteLog("CPU Physical: " + this.CPUPhysicalCores);
+            writer.WriteLog("CPU Speed: " + this.CPUSpeed/1000.00+"GHz");
+            writer.WriteLog("____________________");
+            writer.WriteLog("OS Version: " + this.OSVersion);
+            writer.WriteLog("OS Release: " + this.OSRelease);
+            writer.WriteLog("OS Arch: " + this.OSArch);
+            writer.WriteLog("OS Serial: " + this.OSSerial);
+            writer.WriteLog("____________________");
+            writer.WriteLog("Storage Devices:");
+            writer.WriteLog("____");
             foreach (var storage in this.StorageDevices)
             {
-                Console.WriteLine($"Slot: {storage.Slot}");
-                Console.WriteLine($"Type: {storage.MediaType}");
-                Console.WriteLine($"Serial Number: {storage.SerialNumber}");
-                Console.WriteLine($"Name: {storage.Name}");
-                Console.WriteLine($"Size: {(storage.Size / (1024 * 1024 * 1024)):F2} GB");
-                Console.WriteLine("____");
+                writer.WriteLog($"Slot: {storage.Slot}");
+                writer.WriteLog($"Type: {storage.MediaType}");
+                writer.WriteLog($"Serial Number: {storage.SerialNumber}");
+                writer.WriteLog($"Name: {storage.Name}");
+                writer.WriteLog($"Size: {(storage.Size / (1024 * 1024 * 1024)):F2} GB");
+                writer.WriteLog("____");
             }
-            Console.WriteLine("____________________");
-            Console.WriteLine("RAM Details:");
-            Console.WriteLine("____");
+            writer.WriteLog("____________________");
+            writer.WriteLog("RAM Details:");
+            writer.WriteLog("____");
             foreach (var ram in this.RamDetails)
             {
-                Console.WriteLine($"Slot: {ram.Slot}");
-                Console.WriteLine($"Name: {ram.Name}");
-                Console.WriteLine($"Locator: {ram.Locator}");
-                Console.WriteLine($"Serial Number: {ram.SerialNumber}");
-                Console.WriteLine($"Capacity: {(ram.Capacity / (1024 * 1024 * 1024)):F2} GB");
-                Console.WriteLine("____");
+                writer.WriteLog($"Slot: {ram.Slot}");
+                writer.WriteLog($"Name: {ram.Name}");
+                writer.WriteLog($"Locator: {ram.Locator}");
+                writer.WriteLog($"Serial Number: {ram.SerialNumber}");
+                writer.WriteLog($"Capacity: {(ram.Capacity / (1024 * 1024 * 1024)):F2} GB");
+                writer.WriteLog("____");
             }
-            Console.WriteLine("____________________"); 
-            Console.WriteLine("GPU Details:");
-            Console.WriteLine("____");
+            writer.WriteLog("____________________"); 
+            writer.WriteLog("GPU Details:");
+            writer.WriteLog("____");
             foreach (var gpu in this.GpuDevices)
             {
-                Console.WriteLine($"Slot: {gpu.Slot}");
-                Console.WriteLine($"Name: {gpu.Name}");
-                Console.WriteLine($"Description: {gpu.Description}");
-                Console.WriteLine($"Capacity: {(gpu.Ram/ (1024 * 1024 * 1024)):F2} GB");
-                Console.WriteLine("____");
+                writer.WriteLog($"Slot: {gpu.Slot}");
+                writer.WriteLog($"Name: {gpu.Name}");
+                writer.WriteLog($"Description: {gpu.Description}");
+                writer.WriteLog($"Capacity: {(gpu.Ram/ (1024 * 1024 * 1024)):F2} GB");
+                writer.WriteLog("____");
             }
-            Console.WriteLine("____________________");
-            Console.WriteLine("Monitor Details:");
-            Console.WriteLine("____");
+            writer.WriteLog("____________________");
+            writer.WriteLog("Monitor Details:");
+            writer.WriteLog("____");
             foreach (var monitor in this.MonitorDevices)
             {
-                Console.WriteLine($"Name: {monitor.Name}");
-                Console.WriteLine($"Model: {monitor.Model}");
-                Console.WriteLine($"Serial Number: {monitor.SerialNumber}");
-                Console.WriteLine("____");
+                writer.WriteLog($"Name: {monitor.Name}");
+                writer.WriteLog($"Model: {monitor.Model}");
+                writer.WriteLog($"Serial Number: {monitor.SerialNumber}");
+                writer.WriteLog("____");
             }
-            Console.WriteLine("____________________");
+            writer.WriteLog("____________________");
         }
 
         public string SerializeToJson()
